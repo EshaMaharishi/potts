@@ -20,6 +20,7 @@
   int    oldCell;
   int    newCell;
 
+
 /*******************************************************************************/
 /*** Flip a spin and accept or reject ***/
 
@@ -86,6 +87,8 @@ int flip()
 	  lattice[ point.first ][ point.second ][0]=newCell;
 	  adjustVolumes( point.first , point.second );
   }
+  adjustPerimeters( newCell );
+  adjustPerimeters( oldCell );
 
   // Add in energy associated with flipped site
 
@@ -133,26 +136,23 @@ int flip()
 
   if( deltaEnergy < 0 ){
     totalEnergy+=deltaEnergy;
-	  adjustPerimeters( newCell );
-	  adjustPerimeters( oldCell );
     return 1;
   }
   else if( exp(-1.0*beta*deltaEnergy) > (double)rand()/(double)RAND_MAX ){
     totalEnergy+=deltaEnergy;
-	  adjustPerimeters( newCell );
-	  adjustPerimeters( oldCell );
     return 1;
   }
   else{
     int tmp=newCell;
     newCell=oldCell;
     oldCell=tmp;
-
   for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
 	  std::pair<int,int> point = it->first;
   	  lattice[ point.first ][ point.second ][0]= it->second;
-  	  adjustVolumes( point.first, point.second );
+  	  adjustVolumes( point.first, point.second ); // uses oldCell and newCell
     }
+  	  adjustPerimeters( newCell );
+  	  adjustPerimeters( oldCell );
 
     return 0;
   }

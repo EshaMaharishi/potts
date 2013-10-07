@@ -26,10 +26,10 @@
   /*** Simulation Length ( = Loops * Flips ) ***/
 
   const int numLoops =		10*10;
-  const int numFlips =		pow(2,0);
+  const int numFlips =		pow(2,3);
   const int numPrint = 		numLoops/100;
 
-  const int chunkSize =		2;
+  const int chunkSize =		0;
 
   /*** Energies ***/
 
@@ -40,7 +40,7 @@
   const double J_air =		0.0;
   const double J_cel =		0.0;
 
-  const double J_col =		-50.00000000;
+  const double J_col =		0.00000000;
 
   const double L_vol = 		.05; // heavy penalty for large volume
   /*const*/ double L_ani =	0.0; // negative penalty for large perimeter
@@ -48,13 +48,13 @@
 
   /*** System ***/
 
-  const int N =			100;
+  const int N =				100;
 
-  const int numCells =		1;
+  const int numCells =			1;
   /*const*/ int numCollagen =	0;
 
   const double cellSpawn = 	10.0;
-  const double cellRadius =	30.0;
+  const double cellRadius =	cellSpawn;
 
   const int collagenWidth =	1;
 
@@ -206,12 +206,6 @@ int main(int argc, char *argv[])
   printf("    cell anisotropy  : %8.3lf +/- %7.3lf\n\n",avg[2],dev[2]);
   printf("  Done.\n\n");
   }
-
-  if( argc < 1 )
-	  printf("\n\n Lblb: %f \t\t Anisotropy: %f\n", L_blb, avg[2]);
-  else
-	  printf("\n\n %f \t\t %f\n", L_blb, avg[2]);
-  fflush(stdout);
 
   return 0;
 
