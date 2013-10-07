@@ -9,7 +9,6 @@
 
 void measureCells()
 {
-
   double cellAnisotropy[numCells+1];
   for(int cell=1;cell<=numCells;cell++)
     cellAnisotropy[cell]=measureAnisotropy(cell);
@@ -19,15 +18,15 @@ void measureCells()
     dev[n]=0.0;
   }
   for(int cell=1;cell<=numCells;cell++){
-    avg[0]+=cellVolume[cell];
-    avg[1]+=cellPerimeter[cell];
+    avg[0]+=cellVolumeList[cell].size();
+    avg[1]+=cellPerimeterList[cell].size();
     avg[2]+=cellAnisotropy[cell];
   }
   for(int n=0;n<3;n++)
     avg[n]/=numCells;
   for(int cell=1;cell<=numCells;cell++){
-    dev[0]+=(cellVolume[cell]-avg[0])*(cellVolume[cell]-avg[0]);
-    dev[1]+=(cellPerimeter[cell]-avg[1])*(cellPerimeter[cell]-avg[1]);
+    dev[0]+=(cellVolumeList[cell].size()-avg[0])*(cellVolumeList[cell].size()-avg[0]);
+    dev[1]+=(cellPerimeterList[cell].size()-avg[1])*(cellPerimeterList[cell].size()-avg[1]);
     dev[2]+=(cellAnisotropy[cell]-avg[2])*(cellAnisotropy[cell]-avg[2]);
   }
   for(int n=0;n<3;n++)
@@ -54,12 +53,14 @@ double measureAnisotropy(int cell)
   */
 
   distmax=0;
-  for(i=0; i<cellPerimeter[cell]; i++){
-    xi=cellPerimeterList[cell][i][0];
-    yi=cellPerimeterList[cell][i][1];
-    for(j=0; j<cellPerimeter[cell]; j++){
-      xf=cellPerimeterList[cell][j][0];
-      yf=cellPerimeterList[cell][j][1];
+
+  for(std::set< std::pair<int, int> >::const_iterator it1 = cellPerimeterList[cell].begin(); it1!=cellPerimeterList[cell].end(); ++it1){
+	  xi = it1->first;
+	  yi = it1->second;
+
+	  for(std::set< std::pair<int, int> >::const_iterator it2 = cellPerimeterList[cell].begin(); it2!=cellPerimeterList[cell].end(); ++it2){
+      xf = it2->first;
+      yf = it2->second;
       dx=xf-xi-N*(int)floor((float)(xf-xi)/(float)N+0.499);
       dy=yf-yi-N*(int)floor((float)(yf-yi)/(float)N+0.499);
       dist=dx*dx+dy*dy;
@@ -70,6 +71,8 @@ double measureAnisotropy(int cell)
         distind[2]=yi;
         distind[3]=yf;
       }
+
+
     }
   }
 

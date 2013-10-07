@@ -1,11 +1,19 @@
+#include <utility>
+#include <set>
+#include <vector>
+#include <map>
+
 /*******************************************************************************/
+
+
 /*** SPIN FLIP FUNCTIONS ***/
 
   int    flip();
   void   choose();
-  void   adjustVolumes();
-  void   adjustPerimeters();
+  void   adjustVolumes(int, int);
+  void   adjustPerimeters(int);
   bool   maintainsContiguity();
+  std::map< std::pair<int, int> , int > calculateChunkSites(int, int);
 
   int    iSite;
   int    jSite;
@@ -19,58 +27,105 @@ int flip()
 {
 
   // Choose a spin
+  // The site to be invaded is stored in iSite, jSite
+  // newCell invades oldCell
 
   choose();
+  std::map< std::pair<int, int> , int > chunk;
+  chunk = calculateChunkSites(iSite, jSite);
 
-  // Old energy
+
+
+  // Subtract out parts of old energy associated with spin site
 
   double deltaEnergy = 0.0;
 
-  deltaEnergy -= outplaneEnergy(iSite,jSite);
+  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
+	  std::pair<int,int> point = it->first;
+	  deltaEnergy -= outplaneEnergy( point.first, point.second );
+	  deltaEnergy -= inplaneEnergy( point.first, point.second );
 
-  deltaEnergy -= inplaneEnergy(iSite,jSite);
-  deltaEnergy -= inplaneEnergy((iSite+1)%N,jSite);
-  deltaEnergy -= inplaneEnergy((N+iSite-1)%N,jSite);
-  deltaEnergy -= inplaneEnergy(iSite,(jSite+1)%N);
-  deltaEnergy -= inplaneEnergy(iSite,(N+jSite-1)%N);
+	  // the four neighbor directions
+	  if( chunk.find( std::make_pair( point.first + 1, point.second ) ) != chunk.end() ){
+		  deltaEnergy -= inplaneEnergy( point.first + 1, point.second );
+		  deltaEnergy -= outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( (N + point.first - 1)%N, point.second ) ) != chunk.end() ){
+		  deltaEnergy -= inplaneEnergy( (N + point.first - 1)%N, point.second );
+		  deltaEnergy -= outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( point.first, point.second + 1 ) ) != chunk.end() ){
+		  deltaEnergy -= inplaneEnergy( point.first, point.second + 1 );
+		  deltaEnergy -= outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( point.first, ( N + point.second - 1)%N ) ) != chunk.end() ){
+		  deltaEnergy -= inplaneEnergy( point.first, ( N + point.second - 1)%N );
+		  deltaEnergy -= outplaneEnergy( point.first + 1, point.second );
+	  }
+  }
 
   if(oldCell!=0){
     deltaEnergy -= volumeEnergy(oldCell);
-    //deltaEnergy -= perimeterEnergy(oldCell);
+    deltaEnergy -= anisotropyEnergy(oldCell);
     deltaEnergy -= blobularEnergy(oldCell);
   }
 
   if(newCell!=0){
     deltaEnergy -= volumeEnergy(newCell);
-    //deltaEnergy -= perimeterEnergy(newCell);
+    deltaEnergy -= anisotropyEnergy(newCell);
     deltaEnergy -= blobularEnergy(newCell);
   }
 
   // Flip it
 
-  lattice[iSite][jSite][0]=newCell;
-  adjustVolumes();
-  adjustPerimeters();
+  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
+	  std::pair<int,int> point = it->first;
+	  lattice[ point.first ][ point.second ][0]=newCell;
+	  adjustVolumes( point.first , point.second );
+  }
 
-  // New energy
+  // Add in energy associated with flipped site
 
-  deltaEnergy += outplaneEnergy(iSite,jSite);
+  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
+	  std::pair<int,int> point = it->first;
+	  deltaEnergy += outplaneEnergy( point.first, point.second );
+	  deltaEnergy += inplaneEnergy( point.first, point.second );
 
-  deltaEnergy += inplaneEnergy(iSite,jSite);
-  deltaEnergy += inplaneEnergy((iSite+1)%N,jSite);
-  deltaEnergy += inplaneEnergy((N+iSite-1)%N,jSite);
-  deltaEnergy += inplaneEnergy(iSite,(jSite+1)%N);
-  deltaEnergy += inplaneEnergy(iSite,(N+jSite-1)%N);
+	  // the four neighbor directions
+	  if( chunk.find( std::make_pair( point.first + 1, point.second ) ) != chunk.end() )
+	  {
+		  deltaEnergy += inplaneEnergy( point.first + 1, point.second );
+		  deltaEnergy += outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( (N + point.first - 1)%N, point.second ) ) != chunk.end() ){
+		  deltaEnergy += inplaneEnergy( (N + point.first - 1)%N, point.second );
+		  deltaEnergy += outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( point.first, point.second+1 ) ) != chunk.end() ){
+		  deltaEnergy += inplaneEnergy( point.first, point.second+1 );
+		  deltaEnergy += outplaneEnergy( point.first + 1, point.second );
+	  }
+
+	  if( chunk.find( std::make_pair( point.first, ( N + point.second - 1)%N ) ) != chunk.end() ){
+		  deltaEnergy += inplaneEnergy( point.first, ( N + point.second - 1)%N );
+		  deltaEnergy += outplaneEnergy( point.first + 1, point.second );
+	  }
+  }
 
   if(oldCell!=0){
     deltaEnergy += volumeEnergy(oldCell);
-    //deltaEnergy += perimeterEnergy(oldCell);
+    deltaEnergy += anisotropyEnergy(oldCell);
     deltaEnergy += blobularEnergy(oldCell);
   }
 
   if(newCell!=0){
     deltaEnergy += volumeEnergy(newCell);
-    //deltaEnergy += perimeterEnergy(newCell);
+    deltaEnergy += anisotropyEnergy(newCell);
     deltaEnergy += blobularEnergy(newCell);
   }
 
@@ -78,19 +133,27 @@ int flip()
 
   if( deltaEnergy < 0 ){
     totalEnergy+=deltaEnergy;
+	  adjustPerimeters( newCell );
+	  adjustPerimeters( oldCell );
     return 1;
   }
   else if( exp(-1.0*beta*deltaEnergy) > (double)rand()/(double)RAND_MAX ){
     totalEnergy+=deltaEnergy;
+	  adjustPerimeters( newCell );
+	  adjustPerimeters( oldCell );
     return 1;
   }
   else{
     int tmp=newCell;
     newCell=oldCell;
     oldCell=tmp;
-    lattice[iSite][jSite][0]=newCell;
-    adjustVolumes();
-    adjustPerimeters();
+
+  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
+	  std::pair<int,int> point = it->first;
+  	  lattice[ point.first ][ point.second ][0]= it->second;
+  	  adjustVolumes( point.first, point.second );
+    }
+
     return 0;
   }
 
@@ -101,16 +164,26 @@ int flip()
 
 void choose()
 {
+
   do{
 
     int which,thing;
 
-    // Choose a cell perimeter spin to flip
-
+    // Choose a cell
     oldCell = (rand()%numCells)+1;
-    int p = rand()%cellPerimeter[oldCell];
-    iSite = cellPerimeterList[oldCell][p][0];
-    jSite = cellPerimeterList[oldCell][p][1];
+
+    // Choose a perimeter site within that cell to either extend or surrender
+    std::set< std::pair<int, int> >::const_iterator it(cellPerimeterList[oldCell].begin());
+    int p = rand()%cellPerimeterList[oldCell].size();
+    advance(it,p);
+    iSite = it->first;
+    jSite = it->second;
+
+
+    // Choose a neighboring site either up, down, left, or right
+    // newCell invades oldCell
+    // bit of a misnomer; either one of these could be air
+
     do{
       which = rand()%2;
       thing = 2*(rand()%2)-1;
@@ -120,21 +193,19 @@ void choose()
         newCell = lattice[iSite][(N+jSite+thing)%N][0];
     }while( oldCell == newCell );
 
-  // Choose to invade or surrender
+
+	  // Choose to invade or surrender
+	  // (that is, if you randomly generate an even number, then
+	  // switch from surrendering to invading)
 
     if(rand()%2==0){
-      if(which==0){
+      int tmp = oldCell;
+      oldCell = newCell;
+      newCell = tmp;
+      if(which==0)
         iSite = (N+iSite+thing)%N;
-        int tmp = oldCell;
-        oldCell = newCell;
-        newCell = tmp;
-      }
-      else{
+      else
         jSite = (N+jSite+thing)%N;
-        int tmp = oldCell;
-        oldCell = newCell;
-        newCell = tmp;
-      }
     }
 
   }while(!maintainsContiguity());
@@ -149,6 +220,58 @@ void choose()
 bool maintainsContiguity()
 {
 
+  std::vector<int> borders;
+
+  // If the o's in the diagram below are sites in the chunk to the flipped
+  // then borders are the x sites
+
+  /* Diagram (chunkSize = 2 here, 0 marks (iSite,jSite) )
+  x x x x x x x
+  x o o o o o x
+  x o o o o o x
+  x o o 0 o o x
+  x o o o o o x
+  x o o o o o x
+  x x x x x x x
+  */
+
+  /* add the top row of x's
+  X X X X X X x
+  x o o o o o x
+  x o o o o o x
+  x o o 0 o o x
+  x o o o o o x
+  x o o o o o x
+  x x x x x x x
+  */
+  for( int i = iSite - chunkSize - 1; i <= iSite + chunkSize; i++ )
+	  borders.push_back( lattice[ (N + i)%N ][ jSite - chunkSize - 1 ][0] );
+
+  /* add the right-side column of x's
+  x x x x x x X
+  x o o o o o X
+  x o o o o o X
+  x o o 0 o o X
+  x o o o o o X
+  x o o o o o X
+  x x x x x x x
+  */
+  for( int j = jSite - chunkSize - 1; j <= jSite + chunkSize; j++ )
+	  borders.push_back( lattice[ iSite + chunkSize + 1  ][ (N + j)%N ][0] );
+
+  // the bottom row
+  for( int i = iSite + chunkSize + 1; i >= iSite - chunkSize; i-- )
+	  borders.push_back( lattice[ (N + i)%N ][ jSite + chunkSize + 1 ][0] );
+
+  // the left-side column
+  for( int j = jSite + chunkSize + 1; j >= jSite - chunkSize; j-- )
+	  borders.push_back( lattice[ iSite - chunkSize - 1  ][ (N + j)%N ][0] );
+
+  // NOTE: THE BORDER SITES MUST BE ADDED IN CONTINUOUS ORDER FOR THIS
+  // ALGORITHM TO WORK.
+
+
+  /*
   int borders[8] = { lattice[(N+iSite-1)%N][(N+jSite-1)%N][0],
                      lattice[(N+iSite-1)%N][jSite][0],
                      lattice[(N+iSite-1)%N][(jSite+1)%N][0],
@@ -157,6 +280,8 @@ bool maintainsContiguity()
                      lattice[(iSite+1)%N][jSite][0],
                      lattice[(iSite+1)%N][(N+jSite-1)%N][0],
                      lattice[iSite][(N+jSite-1)%N][0] };
+  */
+
   /*
 	Count how many neighboring spins are in the same cell.
 	If there are none, then this is the last spin of that cell.
@@ -164,7 +289,7 @@ bool maintainsContiguity()
   */
 
   int totalCellCount = 0;
-  for(int n=0; n<8; n++)
+  for(int n=0; n<borders.size(); n++)
     if(borders[n] == oldCell)
       totalCellCount++;   
  
@@ -181,14 +306,14 @@ bool maintainsContiguity()
    */
 
   int index = 0;
-  while(borders[index] == oldCell)
+  while(index < borders.size() && borders[index] == oldCell)
     index++;
      
   /*
 	Then move along until the site just before the next cell spin.
   */
 
-  while(index < 7 && borders[index+1] != oldCell)
+  while(index < borders.size()-1 && borders[index+1] != oldCell)
     index++;
 
   /*
@@ -201,7 +326,7 @@ bool maintainsContiguity()
   int inCellCount = 0;
   while (inCellCount < totalCellCount)
   {
-    index=(index+1)%8;
+    index=(index+1)%(borders.size());
     if(borders[index] != oldCell)
       return false;
     inCellCount++;
@@ -211,28 +336,36 @@ bool maintainsContiguity()
 }
 
 /*******************************************************************************/
+/*** Find the square chunk of sites around the chosen flip site corresponding to chunkSize ***/
+
+std::map< std::pair<int, int>, int > calculateChunkSites( int i, int j ){
+	std::map< std::pair<int, int>, int > chunk;
+	for( int x=i-chunkSize; x<=i+chunkSize; x++ ){
+		for( int y=j-chunkSize; y<=j+chunkSize; y++){
+			std::pair<int, int> p;
+			p.first = x;
+			p.second = y;
+
+			chunk.insert( std::pair< std::pair<int,int> , int>(p, lattice[ p.first ][ p.second ][0]) );
+		}
+	}
+	return chunk;
+}
+
+/*******************************************************************************/
 /*** Adjusts volumes after a spin flip ***/
 
-void adjustVolumes()
+void adjustVolumes(int i, int j)
 {
 
   if(oldCell!=0){
-    cellVolume[oldCell]--;
-    int v=0;
-    while(cellVolumeList[oldCell][v][0]!=iSite || cellVolumeList[oldCell][v][1]!=jSite)
-      v++;
-    while(v<cellVolume[oldCell]){
-      cellVolumeList[oldCell][v][0]=cellVolumeList[oldCell][v+1][0];
-      cellVolumeList[oldCell][v][1]=cellVolumeList[oldCell][v+1][1];
-      v++;
-    }
+	  std::set< std::pair<int,int> >::iterator it = cellVolumeList[oldCell].find( std::make_pair(i,j) );
+	  if( it != cellVolumeList[oldCell].end() )
+		cellVolumeList[oldCell].erase( it );
   }
 
-  if(newCell!=0){
-    cellVolumeList[newCell][cellVolume[newCell]][0]=iSite;
-    cellVolumeList[newCell][cellVolume[newCell]][1]=jSite;
-    cellVolume[newCell]++;
-  }
+  if(newCell!=0)
+    cellVolumeList[newCell].insert( std::make_pair(i,j) );
 
   return;
 }
@@ -241,41 +374,38 @@ void adjustVolumes()
 /*******************************************************************************/
 /*** Adjusts perimeters after a spin flip ***/
 
-void adjustPerimeters()
+
+void adjustPerimeters( int cell ){
+	if( cell != 0 ){
+	cellPerimeterList[ cell ].clear();
+	calculatePerimeter( cell );
+	}
+}
+
+/*
+void adjustPerimeters(int i, int j)
 {
+yo
+  //  Site used to be a perimeter spin in oldCell.
+  //  We had better remove it.
 
-  /*
-    Site used to be a perimeter spin in oldCell.
-    We had better remove it.
-  */
+   if(oldCell!=0){
+	   std::map< std::pair<int,int> >::iterator it = cellPerimeterList[oldCell].find( std::make_pair(i,j) );
+	   if( it != cellPerimeterList[oldCell].end() )
+	     cellPerimeterList[oldCell].erase( it );
+   }
 
-  if(oldCell!=0){
-    cellPerimeter[oldCell]--;
-    int p=0;
-    while(cellPerimeterList[oldCell][p][0]!=iSite || cellPerimeterList[oldCell][p][1]!=jSite)
-      p++;
-    while(p<cellPerimeter[oldCell]){
-      cellPerimeterList[oldCell][p][0]=cellPerimeterList[oldCell][p+1][0];
-      cellPerimeterList[oldCell][p][1]=cellPerimeterList[oldCell][p+1][1];
-      p++;
-    }
-  }
 
-  /*
-    Site is now a perimeter cell in newCell.
-    We had better add it.
-  */
+  //  Site is now a perimeter cell in newCell.
+  //  We had better add it.
 
-  if(newCell!=0){
-    cellPerimeterList[newCell][cellPerimeter[newCell]][0]=iSite;
-    cellPerimeterList[newCell][cellPerimeter[newCell]][1]=jSite;
-    cellPerimeter[newCell]++;
-  }
+  if(newCell!=0)
+    cellPerimeterList[newCell].insert( std::make_pair(i,j) );
 
-  /*
-    Now we need to go through each of Site's four neighbors,
-    rechecking if they are perimeter cells.
-  */
+
+  //  Now we need to go through each of Site's four neighbors,
+  //  rechecking if they are perimeter cells.
+
 
   int iTest,jTest,iTempA,jTempA,iTempB,jTempB,iTempC,jTempC;
 
@@ -285,8 +415,8 @@ void adjustPerimeters()
     switch(neighbor){
 
       case 0:
-      iTest = (iSite+1)%N;
-      jTest = jSite;
+      iTest = (i+1)%N;
+      jTest = j;
       iTempA = (iTest+1)%N;
       jTempA = jTest;
       iTempB = iTest;
@@ -296,8 +426,8 @@ void adjustPerimeters()
       break;
 
       case 1:
-      iTest = (N+iSite-1)%N;
-      jTest = jSite;
+      iTest = (N+i-1)%N;
+      jTest = j;
       iTempA = (N+iTest-1)%N;
       jTempA = jTest;
       iTempB = iTest;
@@ -307,8 +437,8 @@ void adjustPerimeters()
       break;
 
       case 2:
-      iTest = iSite;
-      jTest = (jSite+1)%N;
+      iTest = i;
+      jTest = (j+1)%N;
       iTempA = (iTest+1)%N;
       jTempA = jTest;
       iTempB = (N+iTest-1)%N;
@@ -318,8 +448,8 @@ void adjustPerimeters()
       break;
 
       case 3:
-      iTest  = iSite;
-      jTest  = (N+jSite-1)%N;
+      iTest  = i;
+      jTest  = (N+j-1)%N;
       iTempA = (iTest+1)%N;
       jTempA = jTest;
       iTempB = (N+iTest-1)%N;
@@ -335,38 +465,23 @@ void adjustPerimeters()
 
       // is surely a perimeter now, but maybe used to be as well
       if(lattice[iTest][jTest][0]==oldCell){
-
         // if it wasn't before, then add it
         if( lattice[iTempA][jTempA][0]==oldCell &&
             lattice[iTempB][jTempB][0]==oldCell &&
             lattice[iTempC][jTempC][0]==oldCell )
-        {
-          cellPerimeterList[oldCell][cellPerimeter[oldCell]][0]=iTest;
-          cellPerimeterList[oldCell][cellPerimeter[oldCell]][1]=jTest;
-          cellPerimeter[oldCell]++;
-        }
-
+          cellPerimeterList[oldCell].insert( std::make_pair(iTest, jTest));
       }
 
       // used to be a perimeter, might not be any more
       else if(lattice[iTest][jTest][0]==newCell){
-
         // if it isn't any more, then remove it
         if( lattice[iTempA][jTempA][0]==newCell &&
             lattice[iTempB][jTempB][0]==newCell &&
-            lattice[iTempC][jTempC][0]==newCell )
-        {
-          cellPerimeter[lattice[iTest][jTest][0]]--;
-          int p=0;
-          while(cellPerimeterList[newCell][p][0]!=iTest || cellPerimeterList[newCell][p][1]!=jTest)
-            p++;
-          while(p<cellPerimeter[newCell]){
-            cellPerimeterList[newCell][p][0]=cellPerimeterList[newCell][p+1][0];
-            cellPerimeterList[newCell][p][1]=cellPerimeterList[newCell][p+1][1];
-            p++;
-          }
+            lattice[iTempC][jTempC][0]==newCell ){
+     	   std::map< std::pair<int,int> >::iterator it = cellPerimeterList[newCell].find( std::make_pair(iTest,jTest) );
+     	   if( it != cellPerimeterList[newCell].end() )
+     	     cellPerimeterList[newCell].erase( it );
         }
-
       }
 
     }
@@ -376,34 +491,5 @@ void adjustPerimeters()
   return;
 
 }
-
+*/
 /*******************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

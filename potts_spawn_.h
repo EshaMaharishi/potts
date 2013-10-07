@@ -1,3 +1,6 @@
+#include <utility>
+#include <set>
+
 /*******************************************************************************/
 /*** CREATION FUNCTIONS ***/
 
@@ -26,9 +29,7 @@ void readCells()
       if(lattice[i][j][0]>numCells)
         lattice[i][j][0]-=COLLAGEN_OFFSET+PERIMETER_OFFSET*numCells;
       if(lattice[i][j][0]>0){
-        cellVolumeList[lattice[i][j][0]][cellVolume[lattice[i][j][0]]][0]=i;
-        cellVolumeList[lattice[i][j][0]][cellVolume[lattice[i][j][0]]][1]=j;
-        cellVolume[lattice[i][j][0]]++;
+        cellVolumeList[lattice[i][j][0]].insert( std::make_pair(i, j) );
       }
     }
   }
@@ -73,15 +74,12 @@ void putCells()
 
 void putCellsHelper(int x0, int y0, int cell)
 {
-  cellVolume[cell]=0;
   for(int x=-(int)(cellSpawn+0.5); x<=(int)(cellSpawn+0.5); x++){
     int ymax=(int)(sqrt(cellSpawn*cellSpawn-(double)(x*x)+0.5));
     for(int y=-ymax; y<=ymax; y++){
       if(lattice[(N+x0+x)%N][(N+y0+y)%N][0]==0){
-        lattice[(N+x0+x)%N][(N+y0+y)%N][0]=cell;
-        cellVolumeList[cell][cellVolume[cell]][0]=(N+x0+x)%N;
-        cellVolumeList[cell][cellVolume[cell]][1]=(N+y0+y)%N;
-        cellVolume[cell]++;
+		lattice[(N+x0+x)%N][(N+y0+y)%N][0]=cell;
+		cellVolumeList[ cell ].insert( std::make_pair( (N+x0+x)%N , (N+y0+y)%N ) ); 
       }
     }
   }
@@ -92,18 +90,15 @@ void putCellsHelper(int x0, int y0, int cell)
 
 void calculatePerimeter(int cell)
 {
-  cellPerimeter[cell]=0;
-  for(int v=0;v<cellVolume[cell];v++){
-    int i=cellVolumeList[cell][v][0];
-    int j=cellVolumeList[cell][v][1];
+  for( std::set< std::pair<int, int> >::const_iterator it = cellVolumeList[cell].begin(); it!= cellVolumeList[cell].end(); ++it){ 
+	int i = it->first;
+	int j = it->second;
     if( lattice[i][j][0]!=lattice[(i+1)%N][j][0] ||
         lattice[i][j][0]!=lattice[i][(j+1)%N][0] || 
         lattice[i][j][0]!=lattice[(N+i-1)%N][j][0] || 
         lattice[i][j][0]!=lattice[i][(N+j-1)%N][0] )
     {
-      cellPerimeterList[cell][cellPerimeter[cell]][0]=i;
-      cellPerimeterList[cell][cellPerimeter[cell]][1]=j;
-      cellPerimeter[cell]++;
+	  cellPerimeterList[ cell ].insert( std::make_pair(i, j) );
     }
   }
 }

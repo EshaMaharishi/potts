@@ -1,4 +1,7 @@
 /*******************************************************************************/
+#include <set>
+#include <utility>
+
 /*** HAMILTONIAN FUNCTIONS ***/
 
   double  inplaneEnergy(int,int);
@@ -6,7 +9,7 @@
   double  Hamiltonian();
   double  interactionEnergy(int);
   double  volumeEnergy(int);
-  double  perimeterEnergy(int);
+  double  anisotropyEnergy(int);
   double  blobularEnergy(int);
 
 /*******************************************************************************/
@@ -66,7 +69,7 @@ double Hamiltonian()
   for(int cell=1;cell<=numCells;cell++){
     energy += interactionEnergy(cell);
     energy += volumeEnergy(cell);
-    //energy += perimeterEnergy(cell);
+    energy += anisotropyEnergy(cell);
     energy += blobularEnergy(cell);
   }
   return energy;
@@ -79,11 +82,11 @@ double interactionEnergy(int cell)
 {
   double energy = 0.0;
 
-  for(int p=0;p<cellPerimeter[cell];p++)
-    energy+=inplaneEnergy(cellPerimeterList[cell][p][0],cellPerimeterList[cell][p][1]);
+  for(std::set< std::pair<int, int> >::iterator it = cellPerimeterList[cell].begin(); it!=cellPerimeterList[cell].end(); ++it)
+	  energy += inplaneEnergy( it->first , it-> second );
 
-  for(int v=0;v<cellVolume[cell];v++)
-    energy+=outplaneEnergy(cellVolumeList[cell][v][0],cellVolumeList[cell][v][1]);
+  for(std::set< std::pair<int, int> >::iterator it = cellVolumeList[cell].begin(); it!=cellVolumeList[cell].end(); ++it)
+	  energy += outplaneEnergy( it->first , it-> second );
 
   return energy;
 }
@@ -93,15 +96,15 @@ double interactionEnergy(int cell)
 
 double volumeEnergy(int cell)
 {
-  return L_vol*((double)cellVolume[cell]-targetVolume)*((double)cellVolume[cell]-targetVolume);
+  return L_vol*((double)cellVolumeList[cell].size()-targetVolume)*((double)cellVolumeList[cell].size()-targetVolume);
 }
 
 /*******************************************************************************/
 /*** Returns the perimeter energy of a cell ***/
 
-double perimeterEnergy(int cell)
+double anisotropyEnergy(int cell)
 {
-  return L_per*(double)cellPerimeter[cell]/(double)cellVolume[cell];
+		return L_ani*(double)cellPerimeterList[cell].size()/(double)cellVolumeList[cell].size();
 }
 
 /*******************************************************************************/
@@ -113,54 +116,54 @@ double blobularEnergy(int cell)
   int energy = 0;
   int number = 0;
 
-  for(int a=0; a<cellPerimeter[cell]; a++){
-    for(int b=0; b<cellPerimeter[cell];b++){
+  for(std::set< std::pair<int, int> >::const_iterator it1 = cellPerimeterList[cell].begin(); it1!=cellPerimeterList[cell].end(); ++it1){
+	  for(std::set< std::pair<int, int> >::const_iterator it2 = cellPerimeterList[cell].begin(); it2!=cellPerimeterList[cell].end(); ++it2){
 
-      int ai=cellPerimeterList[cell][a][0];
-      int aj=cellPerimeterList[cell][a][1];
-      int bi=cellPerimeterList[cell][b][0];
-      int bj=cellPerimeterList[cell][b][1];
+		  int ai = it1->first;
+		  int aj = it1->second;
+		  int bi = it2->first;
+		  int bj = it2->second;
 
-      int dx = bi-ai-N*(int)floor((float)(bi-ai)/(float)N+0.5);
-      int sx = (dx>0)-(dx<0);
-      int dy = bj-aj-N*(int)floor((float)(bj-aj)/(float)N+0.5);
-      int sy = (dy>0)-(dy<0);
+		  int dx = bi-ai-N*(int)floor((float)(bi-ai)/(float)N+0.5);
+		  int sx = (dx>0)-(dx<0);
+		  int dy = bj-aj-N*(int)floor((float)(bj-aj)/(float)N+0.5);
+		  int sy = (dy>0)-(dy<0);
 
-      double slope;
-      if(dx!=0)
-        slope = (double)dy/(double)dx;
-      else
-        slope = (double)N;
+		  double slope;
+		  if(dx!=0)
+			slope = (double)dy/(double)dx;
+		  else
+			slope = (double)N;
 
-      int x = ai;
-      int y = aj;
-      double error = fabs(slope);
+		  int x = ai;
+		  int y = aj;
+		  double error = fabs(slope);
 
-      do{
-        number++;
-        if(lattice[x][y][0]!=cell){
-          energy++;
-          goto done;
-        }
-        while(error>0.5){
-          y=(y+sy+N)%N;
-          number++;
-          if(lattice[x][y][0]!=cell){
-            energy++;
-            goto done;
-          }
-          error=error-1.0;
-        }
-        x=(x+sx+N)%N;
-        error+=fabs(slope);
-      }while(x!=(ai+dx+N)%N);
+		  do{
+			number++;
+			if(lattice[x][y][0]!=cell){
+			  energy++;
+			  goto done;
+			}
+			while(error>0.5){
+			  y=(y+sy+N)%N;
+			  number++;
+			  if(lattice[x][y][0]!=cell){
+				energy++;
+				goto done;
+			  }
+			  error=error-1.0;
+			}
+			x=(x+sx+N)%N;
+			error+=fabs(slope);
+		  }while(x!=(ai+dx+N)%N);
 
-      done:;
+		  done:;
 
     }
   }
 
-  return L_blb * (double)energy / (double)(cellPerimeter[cell]-1);
+  return L_blb * (double)energy / (double)(cellPerimeterList[cell].size());
 
 }
 

@@ -1,0 +1,1 @@
+Program("potts.cpp")

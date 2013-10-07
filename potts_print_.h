@@ -22,7 +22,7 @@ void printLog(char *fname)
   fprintf(pfile,"CELL\t\t%lf\n\n",J_cel);
   fprintf(pfile,"COLLAGEN\t%lf\n\n",J_col);
   fprintf(pfile,"VOLUME\t\t%lf\n",L_vol);
-  fprintf(pfile,"PERIMETER\t%lf\n",L_per);
+  fprintf(pfile,"ANISOTROPY\t%lf\n",L_ani);
   fprintf(pfile,"BLOBULAR\t%lf\n\n",L_blb);
   fprintf(pfile,"LATTICE EDGE\t%d\n",N);
   fprintf(pfile,"NUM CELLS\t%d\n",numCells);
@@ -41,7 +41,7 @@ void printCells(char *fname)
   FILE *printTo;
   printTo=fopen(fname,"w");
   for(int cell=1;cell<=numCells;cell++){
-    fprintf(printTo,"%d\n",cellVolume[cell]);
+    fprintf(printTo,"%d\n", (int)cellVolumeList[cell].size());
     for(int i=0;i<N;i++){
       for(int j=0;j<N;j++){
         if(lattice[i][j][0]==cell)
@@ -70,8 +70,8 @@ void printLattice(char *fname)
       }
       //cell
       else{
-        for(int p=0;p<cellPerimeter[lattice[i][j][0]];p++){
-          if(cellPerimeterList[lattice[i][j][0]][p][0]==i && cellPerimeterList[lattice[i][j][0]][p][1]==j){
+    	for(std::set< std::pair<int, int> >::const_iterator it = cellPerimeterList[ lattice[i][j][0] ].begin(); it!=cellPerimeterList[ lattice[i][j][0] ].end(); ++it){
+    		if( (it->first == i) && (it->second == j) ){
             fprintf(pfile,"%d ",lattice[i][j][0]+COLLAGEN_OFFSET+PERIMETER_OFFSET*numCells);
             goto yep;
           }
