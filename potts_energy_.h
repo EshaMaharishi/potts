@@ -2,6 +2,8 @@
 #include <set>
 #include <utility>
 
+//#include "potts_analysis_.h"
+
 /*** HAMILTONIAN FUNCTIONS ***/
 
   double  inplaneEnergy(int,int);
@@ -11,6 +13,8 @@
   double  volumeEnergy(int);
   double  anisotropyEnergy(int);
   double  blobularEnergy(int);
+
+  double measureAnisotropy( int );
 
 /*******************************************************************************/
 /*** Returns the in-plane interaction energy of a lattice site ****/
@@ -104,7 +108,8 @@ double volumeEnergy(int cell)
 
 double anisotropyEnergy(int cell)
 {
-		return L_ani*(double)cellPerimeterList[cell].size()/(double)cellVolumeList[cell].size();
+	//	return L_ani*(double)cellPerimeterList[cell].size()/(double)cellVolumeList[cell].size();
+		return L_ani*measureAnisotropy( cell );
 }
 
 /*******************************************************************************/
@@ -112,6 +117,16 @@ double anisotropyEnergy(int cell)
 
 double blobularEnergy(int cell)
 {
+
+
+	// iterate over each perimeter site, and for each
+	// iterate over logN perimeter sites (if N is the total number of perimeter sites)
+	// spaced out by logN
+	// and if the line between the site and the other site goes outside the cell
+	// penalize
+
+
+  int logN = log( (double)(cellPerimeterList[cell].size()));
 
   int energy = 0;
   int number = 0;

@@ -17,6 +17,7 @@ void printLog(char *fname)
   fprintf(pfile,"LOOPS\t\t%d\n",numLoops);
   fprintf(pfile,"FLIPS\t\t%d\n",numFlips);
   fprintf(pfile,"PRINT\t\t%d\n\n",numPrint);
+  fprintf(pfile,"CHUNKSIZE\t\t%d\n\n",chunkSize);
   fprintf(pfile,"BETA\t\t%lf\n\n",beta);
   fprintf(pfile,"AIR\t\t%lf\n",J_air);
   fprintf(pfile,"CELL\t\t%lf\n\n",J_cel);

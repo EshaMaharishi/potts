@@ -10,8 +10,9 @@
 
   int    flip();
   void   choose();
-  void   adjustVolumes(int, int);
-  void   adjustPerimeters(int);
+  void	 addVolume( int i, int j, int cell);
+  void	 removeVolume( int i, int j, int cell);
+  void   adjustPerimeters(int cell);
   bool   maintainsContiguity();
   std::map< std::pair<int, int> , int > calculateChunkSites(int, int);
 
@@ -34,8 +35,6 @@ int flip()
   choose();
   std::map< std::pair<int, int> , int > chunk;
   chunk = calculateChunkSites(iSite, jSite);
-
-
 
   // Subtract out parts of old energy associated with spin site
 
@@ -70,13 +69,13 @@ int flip()
 
   if(oldCell!=0){
     deltaEnergy -= volumeEnergy(oldCell);
-    deltaEnergy -= anisotropyEnergy(oldCell);
+ //   deltaEnergy -= anisotropyEnergy(oldCell);
     deltaEnergy -= blobularEnergy(oldCell);
   }
 
   if(newCell!=0){
     deltaEnergy -= volumeEnergy(newCell);
-    deltaEnergy -= anisotropyEnergy(newCell);
+ //   deltaEnergy -= anisotropyEnergy(newCell);
     deltaEnergy -= blobularEnergy(newCell);
   }
 
@@ -85,10 +84,9 @@ int flip()
   for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
 	  std::pair<int,int> point = it->first;
 	  lattice[ point.first ][ point.second ][0]=newCell;
-	  adjustVolumes( point.first , point.second );
+	  addVolume( point.first, point.second, newCell );
+	  removeVolume( point.first, point.second, oldCell );
   }
-  adjustPerimeters( newCell );
-  adjustPerimeters( oldCell );
 
   // Add in energy associated with flipped site
 
@@ -122,13 +120,13 @@ int flip()
 
   if(oldCell!=0){
     deltaEnergy += volumeEnergy(oldCell);
-    deltaEnergy += anisotropyEnergy(oldCell);
+   // deltaEnergy += anisotropyEnergy(oldCell);
     deltaEnergy += blobularEnergy(oldCell);
   }
 
   if(newCell!=0){
     deltaEnergy += volumeEnergy(newCell);
-    deltaEnergy += anisotropyEnergy(newCell);
+  //  deltaEnergy += anisotropyEnergy(newCell);
     deltaEnergy += blobularEnergy(newCell);
   }
 
@@ -136,25 +134,30 @@ int flip()
 
   if( deltaEnergy < 0 ){
     totalEnergy+=deltaEnergy;
+    adjustPerimeters( newCell );
+    adjustPerimeters( oldCell );
     return 1;
   }
   else if( exp(-1.0*beta*deltaEnergy) > (double)rand()/(double)RAND_MAX ){
     totalEnergy+=deltaEnergy;
+    adjustPerimeters( newCell );
+    adjustPerimeters( oldCell );
     return 1;
+
   }
   else{
-    int tmp=newCell;
-    newCell=oldCell;
-    oldCell=tmp;
-  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
-	  std::pair<int,int> point = it->first;
-  	  lattice[ point.first ][ point.second ][0]= it->second;
-  	  adjustVolumes( point.first, point.second ); // uses oldCell and newCell
-    }
-  	  adjustPerimeters( newCell );
-  	  adjustPerimeters( oldCell );
-
-    return 0;
+	  for(std::map< std::pair<int, int> , int >::iterator it = chunk.begin(); it != chunk.end(); ++it){
+		  std::pair<int,int> point = it->first;
+		  int originalCellType = it->second;
+		  lattice[ point.first ][ point.second ][0]=originalCellType;
+		  if( originalCellType == oldCell ){
+			  removeVolume( point.first, point.second, newCell );
+			  addVolume( point.first, point.second, oldCell );
+		  }
+		  // if originalCellType was already newCell, then nothing has changed
+		  // that is, the invasion did not cause this i,j site to change type
+	  }
+	  return 0;
   }
 
 }
@@ -343,8 +346,8 @@ std::map< std::pair<int, int>, int > calculateChunkSites( int i, int j ){
 	for( int x=i-chunkSize; x<=i+chunkSize; x++ ){
 		for( int y=j-chunkSize; y<=j+chunkSize; y++){
 			std::pair<int, int> p;
-			p.first = x;
-			p.second = y;
+			p.first = (x+N)%N;
+			p.second = (y+N)%N;
 
 			chunk.insert( std::pair< std::pair<int,int> , int>(p, lattice[ p.first ][ p.second ][0]) );
 		}
@@ -353,20 +356,21 @@ std::map< std::pair<int, int>, int > calculateChunkSites( int i, int j ){
 }
 
 /*******************************************************************************/
-/*** Adjusts volumes after a spin flip ***/
+/*** Adjusts volume after a spin flip ***/
 
-void adjustVolumes(int i, int j)
+void removeVolume(int i, int j, int cell)
 {
-
-  if(oldCell!=0){
-	  std::set< std::pair<int,int> >::iterator it = cellVolumeList[oldCell].find( std::make_pair(i,j) );
-	  if( it != cellVolumeList[oldCell].end() )
-		cellVolumeList[oldCell].erase( it );
+  if(cell!=0){
+	  std::set< std::pair<int,int> >::iterator it = cellVolumeList[cell].find( std::make_pair(i,j) );
+	  if( it != cellVolumeList[cell].end() )
+		cellVolumeList[cell].erase( it );
   }
+  return;
+}
 
-  if(newCell!=0)
-    cellVolumeList[newCell].insert( std::make_pair(i,j) );
-
+void addVolume(int i, int j, int cell){
+  if(cell!=0)
+	  cellVolumeList[cell].insert( std::make_pair(i,j) );
   return;
 }
 
@@ -374,11 +378,27 @@ void adjustVolumes(int i, int j)
 /*******************************************************************************/
 /*** Adjusts perimeters after a spin flip ***/
 
-
 void adjustPerimeters( int cell ){
+
+	// shorter way to do this: see if any of the chunk sites need to be added to the perimeter
+	// run through all old perimeter sites and if they no longer need to be part of the perimeter, erase them from cellPerimeterList
+	// ** note ^ doesn't quite work for the cell being invaded
+
 	if( cell != 0 ){
-	cellPerimeterList[ cell ].clear();
-	calculatePerimeter( cell );
+		cellPerimeterList[cell].clear();
+		  for( std::set< std::pair<int, int> >::const_iterator it = cellVolumeList[cell].begin(); it!= cellVolumeList[cell].end(); ++it){
+			int i = it->first;
+			int j = it->second;
+			if(lattice[i][j][0] != cell )
+					printf("\nproblem: (%d, %d)", i, j);
+		    if( lattice[i][j][0]!=lattice[(i+1)%N][j][0] ||
+		        lattice[i][j][0]!=lattice[i][(j+1)%N][0] ||
+		        lattice[i][j][0]!=lattice[(N+i-1)%N][j][0] ||
+		        lattice[i][j][0]!=lattice[i][(N+j-1)%N][0] )
+		    {
+			  cellPerimeterList[ cell ].insert( std::make_pair(i, j) );
+		    }
+		  }
 	}
 }
 
