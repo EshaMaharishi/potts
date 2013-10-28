@@ -125,21 +125,28 @@ double blobularEnergy(int cell)
 	// and if the line between the site and the other site goes outside the cell
 	// penalize
 
-
-  int logN = log( (double)(cellPerimeterList[cell].size()));
+  int N = cellPerimeterList[cell].size();
+  int logN = log( (double)N );
+  advanceAmount = logN;
 
   int energy = 0;
   int number = 0;
 
   for(std::set< std::pair<int, int> >::const_iterator it1 = cellPerimeterList[cell].begin(); it1!=cellPerimeterList[cell].end(); ++it1){
-	  for(std::set< std::pair<int, int> >::const_iterator it2 = cellPerimeterList[cell].begin(); it2!=cellPerimeterList[cell].end(); ++it2){
+	  int ai = it1->first;
+	  int aj = it1->second;
 
-		  int ai = it1->first;
-		  int aj = it1->second;
+	  int count = 0;
+
+	  while( count < N ){
+
+		  std::set< std::pair<int, int> >::const_iterator it2(cellPerimeterList[cell].begin());
+		  advance(it2,advanceAmount);
+
 		  int bi = it2->first;
 		  int bj = it2->second;
 
-		  int dx = bi-ai-N*(int)floor((float)(bi-ai)/(float)N+0.5);
+		 int dx = bi-ai-N*(int)floor((float)(bi-ai)/(float)N+0.5);
 		  int sx = (dx>0)-(dx<0);
 		  int dy = bj-aj-N*(int)floor((float)(bj-aj)/(float)N+0.5);
 		  int sy = (dy>0)-(dy<0);
@@ -175,37 +182,14 @@ double blobularEnergy(int cell)
 
 		  done:;
 
+		  count += advanceAmount;
     }
+
+
   }
 
-  return L_blb * (double)energy / (double)(cellPerimeterList[cell].size());
+  return L_blb * (double)energy * log(log((double)energy)) / (double)(cellPerimeterList[cell].size());
 
 }
 
 /*******************************************************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

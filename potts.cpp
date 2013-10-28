@@ -21,12 +21,12 @@
 
   /*** Random Number Generation ***/
 
-  int seed = 			0;
+  int seed = 				0; // use 1 for same sequence every time; use 0 for time-based randomness
 
   /*** Simulation Length ( = Loops * Flips ) ***/
 
-  const int numLoops =		10*10;
-  const int numFlips =		pow(2,3);
+  const int numLoops =		10*15;
+  const int numFlips =		pow(2,6);
   const int numPrint = 		numLoops/100;
 
   const int chunkSize =		0;
@@ -42,13 +42,13 @@
 
   const double J_col =		0.00000000;
 
-  const double L_vol = 		.05; // heavy penalty for large volume
-  /*const*/ double L_ani =	0.0; // negative penalty for large perimeter
-  /*const*/ double L_blb =	2.0; // heavy penalty for wiggliness
+  const double L_vol = 		.05;  //  penalty for large volume
+  /*const*/ double L_ani =	0.0; //  penalty for high anisotropy
+  /*const*/ double L_blb =	10;  //  penalty for wiggliness
 
   /*** System ***/
 
-  const int N =				100;
+  const int N =				120;
 
   const int numCells =			1;
   /*const*/ int numCollagen =	0;
@@ -57,6 +57,9 @@
   const double cellRadius =	cellSpawn;
 
   const int collagenWidth =	1;
+
+  const double E = 2.718;
+  int advanceAmount 	= (chunkSize+1)*2;
 
 /*******************************************************************************/
 /*** Global Variables ***/
@@ -115,11 +118,7 @@ int main(int argc, char *argv[])
   strcat(fname," 2>/dev/null");
   system(fname);
 
-  /* Print log file */
 
-  strcpy(fname,dname);
-  strcat(fname,"/aaa_log_.txt");
-  printLog(fname);
 
   /* Let there be life */
 
@@ -185,10 +184,10 @@ int main(int argc, char *argv[])
     fprintf(efile,"\n");
     fflush(efile);
 
- //   if(outerCount%numPrint==0){
-      sprintf(fname,"%s/lattice_%d_.txt",dname,outerCount/*/numPrint*/);
+    if(outerCount%numPrint==0){
+      sprintf(fname,"%s/lattice_%d_.txt",dname,outerCount/numPrint);
       printLattice(fname);
-  //  }
+    }
     }
 
   }
@@ -196,6 +195,13 @@ int main(int argc, char *argv[])
   //printf("\r    finished!              \n\n");
 
   fclose(efile);
+
+  measureCells();
+
+  /* Print log file */
+  strcpy(fname,dname);
+  strcat(fname,"/aaa_log_.txt");
+  printLog(fname);
 
   /*** Show some stats ***/
   if( doPrinting ){

@@ -25,6 +25,7 @@ void printLog(char *fname)
   fprintf(pfile,"VOLUME\t\t%lf\n",L_vol);
   fprintf(pfile,"ANISOTROPY\t%lf\n",L_ani);
   fprintf(pfile,"BLOBULAR\t%lf\n\n",L_blb);
+  fprintf(pfile,"ADVANCEAMOUNT\t%d\n\n",advanceAmount);
   fprintf(pfile,"LATTICE EDGE\t%d\n",N);
   fprintf(pfile,"NUM CELLS\t%d\n",numCells);
   fprintf(pfile,"NUM COLLAGEN\t%d\n",numCollagen);
