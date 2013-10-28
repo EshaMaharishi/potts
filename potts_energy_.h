@@ -132,15 +132,20 @@ double blobularEnergy(int cell)
   int energy = 0;
   int number = 0;
 
-  for(std::set< std::pair<int, int> >::const_iterator it1 = cellPerimeterList[cell].begin(); it1!=cellPerimeterList[cell].end(); ++it1){
+ // for(std::set< std::pair<int, int> >::const_iterator it1 = cellPerimeterList[cell].begin(); it1!=cellPerimeterList[cell].end(); ++it1){
+
+  int outerCount = 0;
+  std::set< std::pair<int, int> >::const_iterator it1(cellPerimeterList[cell].begin());
+  while( outerCount < N ){
+	  advance(it1, advanceAmount);
+	  outerCount += advanceAmount;
+
 	  int ai = it1->first;
 	  int aj = it1->second;
 
 	  int count = 0;
-
+	  std::set< std::pair<int, int> >::const_iterator it2(cellPerimeterList[cell].begin());
 	  while( count < N ){
-
-		  std::set< std::pair<int, int> >::const_iterator it2(cellPerimeterList[cell].begin());
 		  advance(it2,advanceAmount);
 
 		  int bi = it2->first;
@@ -188,7 +193,7 @@ double blobularEnergy(int cell)
 
   }
 
-  return L_blb * (double)energy * log(log((double)energy)) / (double)(cellPerimeterList[cell].size());
+  return L_blb * (double)energy * log((double)energy) / (double)(cellPerimeterList[cell].size());
 
 }
 
